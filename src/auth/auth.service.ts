@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
+import { RegisterInvitedDto } from './dto/register-invited.dto';
 
 @Injectable()
 export class AuthService {
@@ -27,13 +28,77 @@ export class AuthService {
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(registerDto.password, salt);
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: registerDto.name,
-        email: registerDto.email,
-        passwordHash,
-        role: registerDto.role,
-      },
+    const user = await this.prisma.$transaction(async (prisma) => {
+      const org = await prisma.organization.create({
+        data: {
+          name: registerDto.organizationName,
+        },
+      });
+
+      return prisma.user.create({
+        data: {
+          name: registerDto.name,
+          email: registerDto.email,
+          passwordHash,
+          role: 'PROCUREMENT_OFFICER', // Default role for registering users
+          organizationId: org.id,
+        },
+      });
+    });
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    return { user, tokens };
+  }
+
+  async registerInvited(token: string, dto: RegisterInvitedDto) {
+    const invitation = await this.prisma.organizationInvitation.findUnique({
+      where: { token },
+    });
+
+    if (!invitation) {
+      throw new UnauthorizedException('Invalid or expired invitation token');
+    }
+
+    if (invitation.acceptedAt) {
+      throw new ConflictException('Invitation has already been accepted');
+    }
+
+    if (new Date() > invitation.expiresAt) {
+      throw new UnauthorizedException('Invitation has expired');
+    }
+
+    if (invitation.email !== dto.email) {
+      throw new ConflictException('Email does not match invitation');
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const salt = await bcrypt.genSalt();
+    const passwordHash = await bcrypt.hash(dto.password, salt);
+
+    const user = await this.prisma.$transaction(async (prisma) => {
+      const newUser = await prisma.user.create({
+        data: {
+          name: dto.name,
+          email: dto.email,
+          passwordHash,
+          role: invitation.role,
+          organizationId: invitation.organizationId,
+        },
+      });
+
+      await prisma.organizationInvitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date() },
+      });
+
+      return newUser;
     });
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);

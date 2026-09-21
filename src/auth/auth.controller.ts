@@ -7,9 +7,11 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterInvitedDto } from './dto/register-invited.dto';
 import { LoginDto } from './dto/login.dto';
 import type { Response } from 'express';
 import { JwtRefreshGuard } from 'src/guards/jwt-refresh.guard';
@@ -25,6 +27,22 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { user, tokens } = await this.authService.register(registerDto);
+    this.setCookies(res, tokens.accessToken, tokens.refreshToken);
+    const { passwordHash, hashedRefreshToken, ...userWithoutSensitiveInfo } =
+      user;
+    return userWithoutSensitiveInfo;
+  }
+
+  @Post('register-invited')
+  async registerInvited(
+    @Query('token') token: string,
+    @Body() registerInvitedDto: RegisterInvitedDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, tokens } = await this.authService.registerInvited(
+      token,
+      registerInvitedDto,
+    );
     this.setCookies(res, tokens.accessToken, tokens.refreshToken);
     const { passwordHash, hashedRefreshToken, ...userWithoutSensitiveInfo } =
       user;

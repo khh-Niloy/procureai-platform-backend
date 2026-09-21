@@ -7,4 +7,5 @@ model Organization {
   users          User[]
   vendors        Vendor[]
   documents      Document[]
+  invitations    OrganizationInvitation[]
 }

@@ -9,12 +9,10 @@ model Quote {
   paymentTerms     String?
   notes            String?
 
-  status           QuoteStatus @default(SUBMITTED)
-
   submittedAt      DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   vendor          Vendor          @relation(fields: [vendorId], references: [id])
-  
+
   documents  Document[]
 }

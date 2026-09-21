@@ -3,7 +3,6 @@ model Document {
   organizationId String
   vendorId       String?
   quoteId        String?
-  type           DocumentType
 
   fileName       String
   storageKey     String

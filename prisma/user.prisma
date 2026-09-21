@@ -10,4 +10,6 @@ model User {
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  vendor           Vendor?
 }

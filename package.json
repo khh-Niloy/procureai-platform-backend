@@ -17,7 +17,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:generate": "npx prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -32,6 +34,7 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^18.0.1",
+    "nodemailer": "^10.0.10",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.23.0",
@@ -49,6 +52,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.0.0",
@@ -67,9 +71,7 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.15",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0",
-    "prisma:migrate": "npx prisma migrate dev",
-    "prisma:generate": "npx prisma generate"
+    "typescript-eslint": "^8.20.0"
   },
   "jest": {
     "moduleFileExtensions": [
