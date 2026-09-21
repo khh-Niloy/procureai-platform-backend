@@ -37,6 +37,12 @@ export class VendorController {
     return this.vendorService.updateVendor(id, req.user.organizationId, dto);
   }
 
+  @Get()
+  @Roles(Role.PROCUREMENT_OFFICER)
+  getVendorsByOrganization(@Req() req: any) {
+    return this.vendorService.getVendorsByOrganization(req.user.organizationId);
+  }
+
   @Get(':id')
   getVendorById(@Req() req: any, @Param('id') id: string) {
     return this.vendorService.getVendorById(id, req.user.organizationId);

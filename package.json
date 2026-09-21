@@ -30,7 +30,10 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@supabase/server": "^1.7.0",
+    "@types/handlebars": "^4.0.40",
     "bcrypt": "^6.0.0",
+    "bullmq": "^6.3.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
@@ -39,6 +42,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.23.0",
+    "puppeteer": "^25.11.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

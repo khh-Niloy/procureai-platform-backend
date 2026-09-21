@@ -19,3 +19,13 @@ enum PurchaseRequestStatus {
   REJECTED
   PURCHASED
 }
+
+enum DocumentType {
+  QUOTE
+}
+
+enum DocumentStatus {
+  PROCESSING
+  DONE
+  FAILED
+}

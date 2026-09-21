@@ -1,0 +1,49 @@
+model Quote {
+  id              String   @id @default(uuid())
+  vendorId        String
+  purchaseRequestId String?
+
+  subtotal        Decimal?
+  discount        Decimal?
+  tax             Decimal?
+  shippingCost    Decimal?
+  totalAmount     Decimal
+  currency        String
+
+  deliveryDays    Int?
+  deliveryTerms   String?
+
+  paymentTerms    String?
+
+  warrantyMonths  Int?
+  validityDays    Int?
+
+  notes           String?
+
+  submittedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  vendor          Vendor       @relation(fields: [vendorId], references: [id])
+  purchaseRequest PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id])
+  items           QuoteItem[]
+  documents       Document[]
+
+  @@index([vendorId])
+  @@index([purchaseRequestId])
+}
+
+model QuoteItem {
+  id              String   @id @default(uuid())
+  quoteId         String
+
+  productName     String
+  description     String?
+  quantity        Decimal
+  unit            String?
+  unitPrice       Decimal
+  totalPrice      Decimal
+
+  specifications  Json?
+
+  quote           Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
