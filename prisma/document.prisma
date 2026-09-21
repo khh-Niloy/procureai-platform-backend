@@ -1,0 +1,23 @@
+model Document {
+  id             String       @id @default(uuid())
+  organizationId String
+  vendorId       String?
+  quoteId        String?
+  type           DocumentType
+
+  fileName       String
+  storageKey     String
+  mimeType       String
+  fileSize       Int
+
+  extractedText  String?
+  extractedData  Json?
+  processingStatus String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id])
+  quote        Quote?       @relation(fields: [quoteId], references: [id])
+}
