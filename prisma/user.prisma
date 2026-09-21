@@ -12,4 +12,5 @@ model User {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   vendor           Vendor?
+  purchaseRequests PurchaseRequest[] @relation("Requester")
 }

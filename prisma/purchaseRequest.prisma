@@ -1,0 +1,33 @@
+model PurchaseRequest {
+  id             String                 @id @default(uuid())
+  organizationId String
+  requesterId    String
+
+  title          String
+  description    String
+  budget         Decimal?
+  currency       String                 @default("USD")
+  requiredBy     DateTime?
+
+  status         PurchaseRequestStatus  @default(PENDING_MANAGER_APPROVAL)
+
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  requester    User         @relation("Requester", fields: [requesterId], references: [id])
+
+  items         PurchaseRequestItem[]
+}
+
+model PurchaseRequestItem {
+  id               String @id @default(uuid())
+  purchaseRequestId String
+
+  name             String
+  description      String?
+  quantity         Int
+  specifications   Json?
+
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade )
+}
