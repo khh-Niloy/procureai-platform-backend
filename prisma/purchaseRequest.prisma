@@ -18,6 +18,7 @@ model PurchaseRequest {
   requester    User         @relation("Requester", fields: [requesterId], references: [id])
 
   items         PurchaseRequestItem[]
+  quotes        Quote[]
 }
 
 model PurchaseRequestItem {

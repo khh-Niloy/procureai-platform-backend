@@ -1,0 +1,220 @@
+<html lang='en'>
+  <head>
+    <meta charset='utf-8' />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        color: #172033;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        line-height: 1.45;
+        margin: 0;
+      }
+      .header {
+        align-items: flex-start;
+        border-bottom: 3px solid #2563eb;
+        display: flex;
+        justify-content: space-between;
+        padding-bottom: 16px;
+      }
+      .brand {
+        color: #2563eb;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+      }
+      .brand span {
+        color: #172033;
+      }
+      .document-title {
+        color: #475569;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        margin-top: 4px;
+      }
+      .quote-number {
+        font-size: 17px;
+        font-weight: 700;
+        text-align: right;
+      }
+      .muted {
+        color: #64748b;
+      }
+      .meta {
+        margin-top: 3px;
+        text-align: right;
+      }
+      .columns {
+        display: flex;
+        gap: 28px;
+        margin: 22px 0;
+      }
+      .column {
+        flex: 1;
+      }
+      h3 {
+        color: #2563eb;
+        font-size: 9px;
+        letter-spacing: 1px;
+        margin: 0 0 7px;
+        text-transform: uppercase;
+      }
+      p {
+        margin: 2px 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      thead {
+        background: #172033;
+        color: white;
+        display: table-header-group;
+      }
+      th {
+        font-size: 9px;
+        letter-spacing: 0.4px;
+        padding: 9px 7px;
+        text-align: left;
+        text-transform: uppercase;
+      }
+      td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 9px 7px;
+        vertical-align: top;
+      }
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .number {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .item-name {
+        font-weight: 700;
+      }
+      .description {
+        color: #64748b;
+        font-size: 9px;
+        margin-top: 2px;
+      }
+      .summary {
+        margin-left: auto;
+        margin-top: 18px;
+        width: 44%;
+      }
+      .summary td {
+        border: 0;
+        padding: 4px 7px;
+      }
+      .summary .total td {
+        background: #eff6ff;
+        border-top: 2px solid #2563eb;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 9px 7px;
+      }
+      .terms {
+        background: #f8fafc;
+        border-left: 3px solid #2563eb;
+        margin-top: 24px;
+        padding: 13px 15px;
+      }
+      .terms-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 28px;
+      }
+      .term {
+        min-width: 40%;
+      }
+      .term strong {
+        display: block;
+        font-size: 9px;
+        text-transform: uppercase;
+        color: #475569;
+      }
+      .footer {
+        border-top: 1px solid #cbd5e1;
+        color: #64748b;
+        font-size: 9px;
+        margin-top: 28px;
+        padding-top: 10px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header class='header'>
+      <div><div class='brand'>Procure<span>AI</span></div><div
+          class='document-title'
+        >Vendor quotation</div></div>
+      <div><div class='quote-number'>{{quoteNumber}}</div><div
+          class='meta muted'
+        >Issued {{quoteDate}}</div></div>
+    </header>
+    <section class='columns'>
+      <div class='column'><h3>Quoted by</h3><p><strong
+          >{{vendor.name}}</strong></p><p>{{vendor.email}}</p>{{#if
+          vendor.phone
+        }}<p>{{vendor.phone}}</p>{{/if}}{{#if vendor.address}}<p
+          >{{vendor.address}}</p>{{/if}}</div>
+      <div class='column'><h3>Purchase request</h3><p><strong
+          >{{purchaseRequest.title}}</strong></p><p class='muted'>Request #{{purchaseRequest.id}}</p>{{#if
+          purchaseRequest.description
+        }}<p>{{purchaseRequest.description}}</p>{{/if}}</div>
+    </section>
+    <table>
+      <thead><tr><th style='width: 40%'>Item / service</th><th
+            class='number'
+          >Quantity</th><th>Unit</th><th class='number'>Unit price</th><th
+            class='number'
+          >Line total</th></tr></thead>
+      <tbody>{{#each items}}<tr><td><div
+                class='item-name'
+              >{{productName}}</div>{{#if description}}<div
+                  class='description'
+                >{{description}}</div>{{/if}}</td><td
+              class='number'
+            >{{quantity}}</td><td>{{unit}}</td><td
+              class='number'
+            >{{unitPrice}}</td><td
+              class='number'
+            >{{totalPrice}}</td></tr>{{/each}}</tbody>
+    </table>
+    <table class='summary'><tbody><tr><td>Subtotal</td><td
+            class='number'
+          >{{subtotal}}</td></tr>{{#if discount}}<tr><td>Discount</td><td
+              class='number'
+            >{{discount}}</td></tr>{{/if}}{{#if tax}}<tr><td>Tax</td><td
+              class='number'
+            >{{tax}}</td></tr>{{/if}}{{#if shippingCost}}<tr><td
+            >Shipping</td><td
+              class='number'
+            >{{shippingCost}}</td></tr>{{/if}}<tr class='total'><td>Total amount</td><td
+            class='number'
+          >{{totalAmount}}</td></tr></tbody></table>
+    <section class='terms'><h3>Commercial terms</h3><div
+        class='terms-grid'
+      >{{#if deliveryDays}}<div class='term'><strong
+            >Delivery</strong>{{deliveryDays}}
+            days{{#if deliveryTerms}} — {{deliveryTerms}}{{/if}}</div>{{else if
+          deliveryTerms
+        }}<div class='term'><strong
+            >Delivery</strong>{{deliveryTerms}}</div>{{/if}}{{#if
+          paymentTerms
+        }}<div class='term'><strong>Payment terms</strong>{{paymentTerms}}</div>{{/if}}{{#if
+          warrantyMonths
+        }}<div class='term'><strong>Warranty</strong>{{warrantyMonths}}
+            months</div>{{/if}}{{#if validityDays}}<div class='term'><strong
+            >Quote validity</strong>{{validityDays}}
+            days</div>{{/if}}{{#if notes}}<div class='term'><strong
+            >Notes</strong>{{notes}}</div>{{/if}}</div></section>
+    <footer class='footer'>This quotation was generated securely by ProcureAI.</footer>
+  </body>
+</html>

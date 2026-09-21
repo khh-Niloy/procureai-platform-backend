@@ -9,9 +9,19 @@ import { OrganizationModule } from './organization/organization.module';
 import { MailModule } from './mail/mail.module';
 import { VendorModule } from './vendor/vendor.module';
 import { PurchaseRequestModule } from './purchase-request/purchase-request.module';
+import { QuoteModule } from './quote/quote.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, OrganizationModule, MailModule, VendorModule, PurchaseRequestModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    UserModule,
+    OrganizationModule,
+    MailModule,
+    VendorModule,
+    PurchaseRequestModule,
+    QuoteModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

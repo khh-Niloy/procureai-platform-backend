@@ -43,4 +43,11 @@ export class VendorService {
 
     return vendor;
   }
+
+  async getVendorsByOrganization(organizationId: string) {
+    return this.prisma.vendor.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
