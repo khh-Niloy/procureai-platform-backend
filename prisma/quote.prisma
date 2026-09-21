@@ -1,0 +1,18 @@
+model Quote {
+  id                String @id @default(uuid())
+  vendorId          String
+
+  totalAmount      Decimal
+  currency         String
+  deliveryDays     Int?
+  warrantyMonths   Int?
+  paymentTerms     String?
+  notes            String?
+
+  submittedAt      DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+
+  documents  Document[]
+}

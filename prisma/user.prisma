@@ -7,4 +7,10 @@ model User {
   isActive       Boolean      @default(true)
   hashedRefreshToken String?
   updatedAt      DateTime     @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  vendor           Vendor?
+  purchaseRequests PurchaseRequest[] @relation("Requester")
 }
