@@ -4,7 +4,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { InvitePersonDto } from './dto/invite-people.dto';
 import { MailService } from 'src/mail/mail.service';
 import * as crypto from 'crypto';
@@ -16,24 +15,11 @@ export class OrganizationService {
     private readonly mailService: MailService,
   ) {}
 
-  async createOrganization(userId: string, dto: CreateOrganizationDto) {
-    return this.prisma.$transaction(async (prisma) => {
-      const org = await prisma.organization.create({
-        data: {
-          name: dto.name,
-        },
-      });
-
-      await prisma.user.update({
-        where: { id: userId },
-        data: { organizationId: org.id },
-      });
-
-      return org;
-    });
-  }
-
-  async invitePeople(organizationId: string, invites: InvitePersonDto[]) {
+  async invitePeople(
+    organizationId: string,
+    invites: InvitePersonDto[],
+    replyTo: string,
+  ) {
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
     });
@@ -64,80 +50,25 @@ export class OrganizationService {
         invite.email,
         org.name,
         inviteLink,
+        replyTo,
       );
     }
 
     return { message: 'Invitations sent successfully' };
   }
 
-  async acceptInvitation(token: string) {
-    const invitation = await this.prisma.organizationInvitation.findUnique({
-      where: { token },
-      include: { organization: true },
-    });
-
-    if (!invitation) {
-      throw new NotFoundException('Invitation not found');
-    }
-
-    if (invitation.acceptedAt) {
-      throw new BadRequestException('Invitation has already been accepted');
-    }
-
-    if (new Date() > invitation.expiresAt) {
-      throw new BadRequestException('Invitation has expired');
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { email: invitation.email },
-    });
-
-    if (!user) {
-      throw new NotFoundException({
-        message: 'User not found. Please register to accept.',
-        email: invitation.email,
-        token: token,
-      });
-    }
-
-    await this.prisma.$transaction(async (prisma) => {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          organizationId: invitation.organizationId,
-          role: invitation.role,
-        },
-      });
-
-      await prisma.organizationInvitation.update({
-        where: { id: invitation.id },
-        data: { acceptedAt: new Date() },
-      });
-    });
-
-    return { message: 'Successfully joined organization' };
-  }
-
-  async getMyOrganization(organizationId: string) {
-    const org = await this.prisma.organization.findUnique({
-      where: { id: organizationId },
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            isActive: true,
-          },
-        },
+  async getOrganizationUsers(organizationId: string) {
+    return this.prisma.user.findMany({
+      where: { organizationId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        updatedAt: true,
       },
+      orderBy: { name: 'asc' },
     });
-
-    if (!org) {
-      throw new NotFoundException('Organization not found');
-    }
-
-    return org;
   }
 }
