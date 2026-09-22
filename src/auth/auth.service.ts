@@ -40,7 +40,7 @@ export class AuthService {
           name: registerDto.name,
           email: registerDto.email,
           passwordHash,
-          role: 'PROCUREMENT_OFFICER', // Default role for registering users
+          role: 'PROCUREMENT_OFFICER',
           organizationId: org.id,
         },
       });
