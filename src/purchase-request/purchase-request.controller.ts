@@ -42,6 +42,22 @@ export class PurchaseRequestController {
     );
   }
 
+  @Post(':id/initial-approval')
+  @Roles(Role.MANAGER)
+  decideInitialApproval(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: DecideApprovalDto,
+  ) {
+    return this.purchaseRequestService.decideInitialApproval(
+      id,
+      req.user.organizationId,
+      req.user.id,
+      dto.status,
+      dto.comment,
+    );
+  }
+
   @Post(':id/analyze-quotes')
   @Roles(Role.ADMIN, Role.MANAGER, Role.PROCUREMENT_OFFICER)
   analyzeQuotes(
@@ -54,6 +70,18 @@ export class PurchaseRequestController {
       req.user.organizationId,
       req.user.id,
       dto.quoteIds,
+    );
+  }
+
+  @Post(':id/start-quote-collection')
+  @Roles(Role.PROCUREMENT_OFFICER)
+  startQuoteCollection(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.purchaseRequestService.startQuoteCollection(
+      id,
+      req.user.organizationId,
     );
   }
 

@@ -15,4 +15,5 @@ model User {
   purchaseRequests PurchaseRequest[] @relation("Requester")
   createdAnalyses  QuoteAnalysis[]   @relation("QuoteAnalysisCreator")
   approvals        Approval[]        @relation("ApprovalApprover")
+  initialRequestApprovals PurchaseRequest[] @relation("InitialRequestApprover")
 }

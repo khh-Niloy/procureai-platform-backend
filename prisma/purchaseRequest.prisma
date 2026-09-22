@@ -11,16 +11,23 @@ model PurchaseRequest {
 
   status PurchaseRequestStatus @default(PENDING_MANAGER_APPROVAL)
 
+  initialApprovedById String?
+  initialApprovalComment String?
+  initialApprovedAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id])
   requester    User         @relation("Requester", fields: [requesterId], references: [id])
+  initialApprovedBy User?   @relation("InitialRequestApprover", fields: [initialApprovedById], references: [id], onDelete: SetNull)
 
   items     PurchaseRequestItem[]
   quotes    Quote[]
   analyses  QuoteAnalysis[]
   approvals Approval[]
+
+  @@index([initialApprovedById])
 }
 
 model PurchaseRequestItem {

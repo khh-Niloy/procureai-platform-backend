@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { mailConfig } from '../config/mail.config';
+import { config } from '../config';
 
 @Injectable()
 export class MailService {
@@ -9,12 +9,12 @@ export class MailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: mailConfig.host,
-      port: mailConfig.port,
-      secure: mailConfig.port === 465,
+      host: config.mail.host,
+      port: config.mail.port,
+      secure: config.mail.port === 465,
       auth: {
-        user: mailConfig.user,
-        pass: mailConfig.pass,
+        user: config.mail.user,
+        pass: config.mail.pass,
       },
     });
   }
@@ -38,7 +38,7 @@ export class MailService {
 
     try {
       await this.transporter.sendMail({
-        from: mailConfig.from,
+        from: config.mail.from,
         to,
         subject: `Invitation to join ${organizationName}`,
         html,
