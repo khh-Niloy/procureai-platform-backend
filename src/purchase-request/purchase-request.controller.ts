@@ -3,18 +3,23 @@ import {
   Post,
   Body,
   Get,
-  Patch,
   Param,
   UseGuards,
   Req,
 } from '@nestjs/common';
 import { PurchaseRequestService } from './purchase-request.service';
 import { CreatePurchaseRequestDto } from './dto/create-purchase-request.dto';
-import { UpdatePurchaseRequestStatusDto } from './dto/update-purchase-request-status.dto';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/decorators/roles.decorator';
 import { Role } from 'src/generated/prisma/enums';
+import { AnalyzeQuotesDto } from './dto/analyze-quotes.dto';
+import { DecideApprovalDto } from './dto/decide-approval.dto';
+import { Request } from 'express';
+
+type AuthenticatedRequest = Request & {
+  user: { id: string; organizationId: string; role: Role };
+};
 
 @Controller('purchase-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,7 +31,10 @@ export class PurchaseRequestController {
   // Only TEAM_LEADER can create purchase requests
   @Post()
   @Roles(Role.TEAM_LEADER)
-  createRequest(@Req() req: any, @Body() dto: CreatePurchaseRequestDto) {
+  createRequest(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreatePurchaseRequestDto,
+  ) {
     return this.purchaseRequestService.createRequest(
       req.user.organizationId,
       req.user.id,
@@ -34,35 +42,72 @@ export class PurchaseRequestController {
     );
   }
 
-  // MANAGER, PROCUREMENT_OFFICER, FINANCE_OFFICER, CFO can update status
-  @Patch(':id/status')
-  @Roles(
-    Role.MANAGER,
-    Role.PROCUREMENT_OFFICER,
-    Role.FINANCE_OFFICER,
-    Role.CFO,
-  )
-  updateStatus(
-    @Req() req: any,
+  @Post(':id/analyze-quotes')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.PROCUREMENT_OFFICER)
+  analyzeQuotes(
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: UpdatePurchaseRequestStatusDto,
+    @Body() dto: AnalyzeQuotesDto,
   ) {
-    return this.purchaseRequestService.updateStatus(
+    return this.purchaseRequestService.analyzeQuotes(
       id,
       req.user.organizationId,
+      req.user.id,
+      dto.quoteIds,
+    );
+  }
+
+  @Get(':id/analyses')
+  @Roles(
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.FINANCE_OFFICER,
+    Role.CFO,
+    Role.PROCUREMENT_OFFICER,
+  )
+  listAnalyses(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.purchaseRequestService.listAnalyses(
+      id,
+      req.user.organizationId,
+    );
+  }
+
+  @Post(':id/analyses/:analysisId/approval')
+  @Roles(Role.MANAGER, Role.FINANCE_OFFICER, Role.CFO)
+  decideApproval(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('analysisId') analysisId: string,
+    @Body() dto: DecideApprovalDto,
+  ) {
+    return this.purchaseRequestService.decideApproval(
+      id,
+      analysisId,
+      req.user.organizationId,
+      req.user.id,
       req.user.role,
-      dto,
+      dto.status,
+      dto.comment,
+    );
+  }
+
+  @Post(':id/mark-purchased')
+  @Roles(Role.PROCUREMENT_OFFICER)
+  markPurchased(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.purchaseRequestService.markPurchased(
+      id,
+      req.user.organizationId,
     );
   }
 
   // Any authenticated org member can view purchase requests
   @Get()
-  findAll(@Req() req: any) {
+  findAll(@Req() req: AuthenticatedRequest) {
     return this.purchaseRequestService.findAll(req.user.organizationId);
   }
 
   @Get(':id')
-  findOne(@Req() req: any, @Param('id') id: string) {
+  findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.purchaseRequestService.findOne(id, req.user.organizationId);
   }
 }
