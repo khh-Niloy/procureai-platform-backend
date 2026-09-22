@@ -14,22 +14,18 @@ export const config = {
   jwtRefreshSecret:
     process.env.JWT_REFRESH_SECRET || 'super-secret-refresh-key-12345',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  storageDriver: process.env.STORAGE_DRIVER || 'local',
-  localStorageDir: process.env.LOCAL_STORAGE_DIR || 'uploads',
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // Default to 10MB
   corsOrigins: (
     process.env.CORS_ORIGIN ||
     'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001'
   )
     .split(',')
     .map((origin) => origin.trim()),
-  aws: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-    region: process.env.AWS_DEFAULT_REGION || 'us-east-1',
-    bucket: process.env.AWS_BUCKET || '',
-    usePathStyleEndpoint: process.env.AWS_USE_PATH_STYLE_ENDPOINT === 'true',
-    fileLoadBase: process.env.AWS_FILE_LOAD_BASE || '',
+  mail: {
+    host: process.env.SMTP_HOST || 'smtp.example.com',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    user: process.env.SMTP_USER || 'user@example.com',
+    pass: process.env.SMTP_PASS || 'password',
+    from: process.env.SMTP_FROM || 'ProcureAI <no-reply@procure.ai>',
   },
   platformName: process.env.PLATFORM_NAME || 'ProcureAi',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
