@@ -1,0 +1,22 @@
+model QuoteAnalysis {
+  id                String         @id @default(uuid())
+  purchaseRequestId String
+  createdById       String
+  status            AnalysisStatus @default(PENDING)
+
+  selectedQuoteIds   Json
+  result             Json?
+  hardRuleResults    Json?
+  recommendedQuoteId String?
+
+  failureReason String?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  createdBy       User            @relation("QuoteAnalysisCreator", fields: [createdById], references: [id])
+  approvals       Approval[]
+
+  @@index([purchaseRequestId, createdAt])
+  @@index([status])
+}

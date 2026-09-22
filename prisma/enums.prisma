@@ -17,6 +17,7 @@ enum PurchaseRequestStatus {
   PENDING_CFO_APPROVAL
   APPROVED
   REJECTED
+  CFO_APPROVED
   PURCHASED
 }
 
@@ -27,5 +28,23 @@ enum DocumentType {
 enum DocumentStatus {
   PROCESSING
   DONE
+  FAILED
+}
+
+enum ApprovalType {
+  MANAGER
+  FINANCE
+  CFO
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AnalysisStatus {
+  PENDING
+  SUCCEEDED
   FAILED
 }
