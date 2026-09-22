@@ -23,6 +23,7 @@ export class MailService {
     to: string,
     organizationName: string,
     inviteLink: string,
+    replyTo: string,
   ) {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -39,6 +40,7 @@ export class MailService {
     try {
       await this.transporter.sendMail({
         from: config.mail.from,
+        replyTo,
         to,
         subject: `Invitation to join ${organizationName}`,
         html,
