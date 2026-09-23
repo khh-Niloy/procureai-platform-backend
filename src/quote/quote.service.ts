@@ -1,12 +1,15 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { DocumentStatus, DocumentType } from 'src/generated/prisma/enums';
+import {
+  DocumentStatus,
+  DocumentType,
+  VendorQuoteRequestStatus,
+} from 'src/generated/prisma/enums';
 import { Prisma } from 'src/generated/prisma/client';
 import { DocumentService } from 'src/document/document.service';
 import { QuotationPdfQueue } from 'src/jobs/quotation-pdf/quotation-pdf.queue';
@@ -30,7 +33,11 @@ export class QuoteService {
   ) {
     const [vendor, purchaseRequest] = await Promise.all([
       this.prisma.vendor.findFirst({
-        where: { id: dto.vendorId, organizationId, isActive: true },
+        where: {
+          organizationId,
+          isActive: true,
+          userId,
+        },
       }),
       this.prisma.purchaseRequest.findFirst({
         where: { id: dto.purchaseRequestId, organizationId },
@@ -40,12 +47,6 @@ export class QuoteService {
     if (!vendor) throw new NotFoundException('Active vendor not found');
     if (!purchaseRequest)
       throw new NotFoundException('Purchase request not found');
-    if (vendor.userId !== userId) {
-      throw new ForbiddenException(
-        'You can only submit a quote for your vendor',
-      );
-    }
-
     const quoteId = randomUUID();
     const todaysDate = new Date().toISOString().slice(0, 10);
     const fileName = `quotation-${todaysDate}-${quoteId.slice(0, 8)}.pdf`;
@@ -55,7 +56,7 @@ export class QuoteService {
       const quote = await tx.quote.create({
         data: {
           id: quoteId,
-          vendorId: dto.vendorId,
+          vendorId: vendor.id,
           purchaseRequestId: dto.purchaseRequestId,
           subtotal: dto.subtotal,
           discount: dto.discount,
@@ -95,6 +96,15 @@ export class QuoteService {
           storageKey,
           mimeType: 'application/pdf',
           fileSize: 0,
+        },
+      });
+      await tx.vendorQuoteRequest.updateMany({
+        where: {
+          purchaseRequestId: dto.purchaseRequestId,
+          organizationId,
+        },
+        data: {
+          vendorQuoteRequest: VendorQuoteRequestStatus.QOUTE_SUBMITTED,
         },
       });
       return { quote, document };
@@ -161,6 +171,25 @@ export class QuoteService {
       fileName: document.fileName,
       url: await this.storage.createSignedDownloadUrl(document.storageKey),
     };
+  }
+
+  async getVendorQuotes(organizationId: string, userId: string) {
+    return this.prisma.quote.findMany({
+      where: {
+        vendor: { organizationId, userId },
+      },
+      include: {
+        purchaseRequest: { select: { id: true, title: true } },
+        items: true,
+        documents: {
+          where: { type: DocumentType.QUOTE },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id: true, fileName: true, status: true, failureReason: true },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
   }
 
   async retryPdf(quoteId: string, organizationId: string, userId: string) {

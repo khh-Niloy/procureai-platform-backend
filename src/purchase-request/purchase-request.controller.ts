@@ -12,9 +12,10 @@ import { CreatePurchaseRequestDto } from './dto/create-purchase-request.dto';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { Role } from 'src/generated/prisma/enums';
+import { PurchaseRequestStatus, Role } from 'src/generated/prisma/enums';
 import { AnalyzeQuotesDto } from './dto/analyze-quotes.dto';
 import { DecideApprovalDto } from './dto/decide-approval.dto';
+import { DecideInitialApprovalDto } from './dto/decide-initial-approval.dto';
 import { Request } from 'express';
 
 type AuthenticatedRequest = Request & {
@@ -42,12 +43,39 @@ export class PurchaseRequestController {
     );
   }
 
+  @Get('pending-initial-approval')
+  @Roles(Role.MANAGER)
+  findPendingInitialApprovals(@Req() req: AuthenticatedRequest) {
+    return this.purchaseRequestService.findByStatus(
+      req.user.organizationId,
+      PurchaseRequestStatus.PENDING_MANAGER_APPROVAL,
+    );
+  }
+
+  @Get('pending-quote-collection')
+  @Roles(Role.PROCUREMENT_OFFICER)
+  findPendingQuoteCollection(@Req() req: AuthenticatedRequest) {
+    return this.purchaseRequestService.findByStatus(
+      req.user.organizationId,
+      PurchaseRequestStatus.INITIAL_APPROVED,
+    );
+  }
+
+  @Get('quote-collection')
+  @Roles(Role.PROCUREMENT_OFFICER)
+  findQuoteCollectionRequests(@Req() req: AuthenticatedRequest) {
+    return this.purchaseRequestService.findByStatus(
+      req.user.organizationId,
+      PurchaseRequestStatus.QUOTE_COLLECTION,
+    );
+  }
+
   @Post(':id/initial-approval')
   @Roles(Role.MANAGER)
   decideInitialApproval(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: DecideApprovalDto,
+    @Body() dto: DecideInitialApprovalDto,
   ) {
     return this.purchaseRequestService.decideInitialApproval(
       id,
@@ -55,6 +83,19 @@ export class PurchaseRequestController {
       req.user.id,
       dto.status,
       dto.comment,
+    );
+  }
+
+  @Post(':id/start-quote-collection')
+  @Roles(Role.PROCUREMENT_OFFICER)
+  startQuoteCollection(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.purchaseRequestService.startQuoteCollection(
+      id,
+      req.user.organizationId,
+      req.user.id,
     );
   }
 
@@ -73,32 +114,20 @@ export class PurchaseRequestController {
     );
   }
 
-  @Post(':id/start-quote-collection')
-  @Roles(Role.PROCUREMENT_OFFICER)
-  startQuoteCollection(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.purchaseRequestService.startQuoteCollection(
-      id,
-      req.user.organizationId,
-    );
-  }
-
-  @Get(':id/analyses')
-  @Roles(
-    Role.ADMIN,
-    Role.MANAGER,
-    Role.FINANCE_OFFICER,
-    Role.CFO,
-    Role.PROCUREMENT_OFFICER,
-  )
-  listAnalyses(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.purchaseRequestService.listAnalyses(
-      id,
-      req.user.organizationId,
-    );
-  }
+  // @Get(':id/analyses')
+  // @Roles(
+  //   Role.ADMIN,
+  //   Role.MANAGER,
+  //   Role.FINANCE_OFFICER,
+  //   Role.CFO,
+  //   Role.PROCUREMENT_OFFICER,
+  // )
+  // listAnalyses(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  //   return this.purchaseRequestService.listAnalyses(
+  //     id,
+  //     req.user.organizationId,
+  //   );
+  // }
 
   @Post(':id/analyses/:analysisId/approval')
   @Roles(Role.MANAGER, Role.FINANCE_OFFICER, Role.CFO)
@@ -134,8 +163,8 @@ export class PurchaseRequestController {
     return this.purchaseRequestService.findAll(req.user.organizationId);
   }
 
-  @Get(':id')
-  findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.purchaseRequestService.findOne(id, req.user.organizationId);
-  }
+  // @Get(':id')
+  // findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  //   return this.purchaseRequestService.findOne(id, req.user.organizationId);
+  // }
 }

@@ -3,7 +3,7 @@
   "collection": "@nestjs/schematics",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": [{ "include": "pdf/templates/*.hbs", "outDir": "dist" }]
+    "assets": [{ "include": "pdf/templates/*.hbs", "outDir": "dist/src" }]
   },
   "sourceRoot": "src"
 }

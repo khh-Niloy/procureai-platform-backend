@@ -34,6 +34,14 @@ export class QuoteController {
     );
   }
 
+  @Get('mine')
+  getMyQuotes(@Req() req: AuthenticatedRequest) {
+    return this.quoteService.getVendorQuotes(
+      req.user.organizationId,
+      req.user.id,
+    );
+  }
+
   @Get(':id/document/download-url')
   getDownloadUrl(
     @Req() req: AuthenticatedRequest,

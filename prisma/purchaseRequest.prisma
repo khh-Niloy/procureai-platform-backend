@@ -26,6 +26,7 @@ model PurchaseRequest {
   quotes    Quote[]
   analyses  QuoteAnalysis[]
   approvals Approval[]
+  vendorQuoteRequests VendorQuoteRequest[]
 
   @@index([initialApprovedById])
 }
