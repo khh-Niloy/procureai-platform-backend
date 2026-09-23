@@ -90,6 +90,17 @@ export class AuthService {
           passwordHash,
           role: invitation.role,
           organizationId: invitation.organizationId,
+          ...(invitation.role === 'VENDOR'
+            ? {
+                vendor: {
+                  create: {
+                    organizationId: invitation.organizationId,
+                    name: dto.name,
+                    email: dto.email,
+                  },
+                },
+              }
+            : {}),
         },
       });
 

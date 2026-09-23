@@ -7,15 +7,15 @@ import { UpdateVendorDto } from './dto/update-vendor.dto';
 export class VendorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createVendor(organizationId: string, userId: string, dto: CreateVendorDto) {
-    return this.prisma.vendor.create({
-      data: {
-        organizationId,
-        userId,
-        ...dto,
-      },
-    });
-  }
+  // async createVendor(organizationId: string, userId: string, dto: CreateVendorDto) {
+  //   return this.prisma.vendor.create({
+  //     data: {
+  //       organizationId,
+  //       userId,
+  //       ...dto,
+  //     },
+  //   });
+  // }
 
   async updateVendor(id: string, organizationId: string, dto: UpdateVendorDto) {
     const vendor = await this.prisma.vendor.findFirst({
@@ -47,6 +47,26 @@ export class VendorService {
   async getVendorsByOrganization(organizationId: string) {
     return this.prisma.vendor.findMany({
       where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getQuoteRequests(organizationId: string, userId: string) {
+    const vendor = await this.prisma.vendor.findFirst({
+      where: { organizationId, userId, isActive: true },
+      select: { id: true },
+    });
+    if (!vendor) {
+      throw new NotFoundException('Active vendor not found');
+    }
+
+    return this.prisma.vendorQuoteRequest.findMany({
+      where: { organizationId, vendorId: vendor.id },
+      include: {
+        purchaseRequest: {
+          include: { items: true, organization: { select: { id: true, name: true } } },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

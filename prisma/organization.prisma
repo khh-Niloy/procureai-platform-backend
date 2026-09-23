@@ -9,4 +9,5 @@ model Organization {
   documents        Document[]
   invitations      OrganizationInvitation[]
   purchaseRequests PurchaseRequest[]
+  vendorQuoteRequests VendorQuoteRequest[]
 }

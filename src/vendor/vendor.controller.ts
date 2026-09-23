@@ -21,11 +21,11 @@ import { Role } from 'src/generated/prisma/enums';
 export class VendorController {
   constructor(private readonly vendorService: VendorService) {}
 
-  @Post()
-  @Roles(Role.VENDOR)
-  createVendor(@Req() req: any, @Body() dto: CreateVendorDto) {
-    return this.vendorService.createVendor(req.user.organizationId, req.user.id, dto);
-  }
+  // @Post()
+  // @Roles(Role.VENDOR)
+  // createVendor(@Req() req: any, @Body() dto: CreateVendorDto) {
+  //   return this.vendorService.createVendor(req.user.organizationId, req.user.id, dto);
+  // }
 
   @Patch(':id')
   @Roles(Role.VENDOR)
@@ -41,6 +41,15 @@ export class VendorController {
   @Roles(Role.PROCUREMENT_OFFICER)
   getVendorsByOrganization(@Req() req: any) {
     return this.vendorService.getVendorsByOrganization(req.user.organizationId);
+  }
+
+  @Get('quote-requests')
+  @Roles(Role.VENDOR)
+  getQuoteRequests(@Req() req: any) {
+    return this.vendorService.getQuoteRequests(
+      req.user.organizationId,
+      req.user.id,
+    );
   }
 
   @Get(':id')

@@ -40,9 +40,6 @@ class CreateQuoteItemDto {
 
 export class CreateQuoteDto {
   @IsUUID()
-  vendorId: string;
-
-  @IsUUID()
   purchaseRequestId: string;
 
   @IsDecimal()
