@@ -3,6 +3,7 @@ model VendorQuoteRequest {
   requesterId String
   purchaseRequestId String
   organizationId String
+  vendorId String
   vendorQuoteRequest VendorQuoteRequestStatus @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -10,7 +11,9 @@ model VendorQuoteRequest {
   requester User @relation("Requester", fields: [requesterId], references: [id])
   purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  @@unique([purchaseRequestId, organizationId])
+  @@unique([purchaseRequestId, vendorId])
   @@index([organizationId, createdAt])
+  @@index([vendorId, createdAt])
 }

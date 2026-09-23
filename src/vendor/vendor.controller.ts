@@ -46,7 +46,10 @@ export class VendorController {
   @Get('quote-requests')
   @Roles(Role.VENDOR)
   getQuoteRequests(@Req() req: any) {
-    return this.vendorService.getQuoteRequests(req.user.organizationId);
+    return this.vendorService.getQuoteRequests(
+      req.user.organizationId,
+      req.user.id,
+    );
   }
 
   @Get(':id')

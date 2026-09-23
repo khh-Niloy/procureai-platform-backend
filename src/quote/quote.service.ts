@@ -102,6 +102,7 @@ export class QuoteService {
         where: {
           purchaseRequestId: dto.purchaseRequestId,
           organizationId,
+          vendorId: vendor.id,
         },
         data: {
           vendorQuoteRequest: VendorQuoteRequestStatus.QOUTE_SUBMITTED,

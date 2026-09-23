@@ -147,9 +147,20 @@ export class PurchaseRequestService {
         );
       }
 
-      await tx.vendorQuoteRequest.create({
-        data: { requesterId, purchaseRequestId: id, organizationId },
+      const vendors = await tx.vendor.findMany({
+        where: { organizationId, isActive: true },
+        select: { id: true },
       });
+      if (vendors.length) {
+        await tx.vendorQuoteRequest.createMany({
+          data: vendors.map(({ id: vendorId }) => ({
+            requesterId,
+            purchaseRequestId: id,
+            organizationId,
+            vendorId,
+          })),
+        });
+      }
 
       return tx.purchaseRequest.findFirstOrThrow({
         where: { id, organizationId },

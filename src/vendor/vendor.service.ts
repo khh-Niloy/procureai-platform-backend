@@ -51,9 +51,17 @@ export class VendorService {
     });
   }
 
-  async getQuoteRequests(organizationId: string) {
+  async getQuoteRequests(organizationId: string, userId: string) {
+    const vendor = await this.prisma.vendor.findFirst({
+      where: { organizationId, userId, isActive: true },
+      select: { id: true },
+    });
+    if (!vendor) {
+      throw new NotFoundException('Active vendor not found');
+    }
+
     return this.prisma.vendorQuoteRequest.findMany({
-      where: { organizationId },
+      where: { organizationId, vendorId: vendor.id },
       include: {
         purchaseRequest: {
           include: { items: true, organization: { select: { id: true, name: true } } },
