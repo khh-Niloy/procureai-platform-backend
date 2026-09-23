@@ -1,0 +1,56 @@
+enum Role {
+  TEAM_LEADER
+  MANAGER
+  PROCUREMENT_OFFICER
+  FINANCE_OFFICER
+  CFO
+  VENDOR
+  ADMIN
+}
+
+enum PurchaseRequestStatus {
+  PENDING_MANAGER_APPROVAL
+  INITIAL_APPROVED
+  QUOTE_COLLECTION
+  AI_ANALYSIS_SUCCESS
+  AI_ANALYSIS_FAILED
+  PENDING_FINANCE_APPROVAL
+  PENDING_CFO_APPROVAL
+  APPROVED
+  REJECTED
+  CFO_APPROVED
+  PURCHASED
+}
+
+enum DocumentType {
+  QUOTE
+}
+
+enum DocumentStatus {
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ApprovalType {
+  MANAGER
+  FINANCE
+  CFO
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AnalysisStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum VendorQuoteRequestStatus {
+  PENDING
+  QOUTE_SUBMITTED
+}

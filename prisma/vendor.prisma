@@ -1,0 +1,22 @@
+model Vendor {
+  id             String  @id @default(uuid())
+  organizationId String
+  userId         String? @unique
+
+  name     String
+  email    String
+  phone    String?
+  address  String?
+  website  String?
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  quotes    Quote[]
+  documents Document[]
+  quoteRequests VendorQuoteRequest[]
+}
