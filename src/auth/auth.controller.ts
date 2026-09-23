@@ -67,8 +67,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(req.user.id);
-    res.clearCookie('Authentication');
-    res.clearCookie('Refresh');
+    res.clearCookie('Authentication', this.cookieOptions);
+    res.clearCookie('Refresh', this.cookieOptions);
     return { message: 'Logged out successfully' };
   }
 
@@ -86,14 +86,27 @@ export class AuthController {
 
   private setCookies(res: Response, accessToken: string, refreshToken: string) {
     res.cookie('Authentication', accessToken, {
+      ...this.cookieOptions,
       httpOnly: true,
-      path: '/',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
     res.cookie('Refresh', refreshToken, {
+      ...this.cookieOptions,
       httpOnly: true,
-      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+  }
+
+  private get cookieOptions() {
+    return {
+      path: '/',
+      // The Vercel frontend and Prisma API are cross-site, so production
+      // browsers require SameSite=None and Secure for the auth cookies.
+      sameSite:
+        process.env.NODE_ENV === 'production'
+          ? ('none' as const)
+          : ('lax' as const),
+      secure: process.env.NODE_ENV === 'production',
+    };
   }
 }

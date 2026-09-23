@@ -20,7 +20,10 @@ export const config = {
   )
     .split(',')
     .map((origin) => origin.trim()),
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  frontendUrl: (process.env.FRONTEND_URL || 'http://localhost:3000').replace(
+    /\/+$/,
+    '',
+  ),
   mail: {
     host: process.env.SMTP_HOST || 'smtp.example.com',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
