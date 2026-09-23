@@ -6,6 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { InvitePersonDto } from './dto/invite-people.dto';
 import { MailService } from 'src/mail/mail.service';
+import { config } from 'src/config';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -30,8 +31,6 @@ export class OrganizationService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 72); // 72 hours expiration
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-
     for (const invite of invites) {
       const token = crypto.randomBytes(32).toString('hex');
 
@@ -45,7 +44,7 @@ export class OrganizationService {
         },
       });
 
-      const inviteLink = `${frontendUrl}/accept-invitation?token=${token}`;
+      const inviteLink = `${config.frontendUrl}/accept-invitation?token=${token}`;
       await this.mailService.sendInvitationEmail(
         invite.email,
         org.name,
