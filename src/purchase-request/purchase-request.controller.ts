@@ -77,6 +77,7 @@ export class PurchaseRequestController {
   }
 
   @Get(':id/analyses')
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER, Role.TEAM_LEADER)
   listAnalyses(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.purchaseRequestService.listAnalyses(
       id,
@@ -84,8 +85,9 @@ export class PurchaseRequestController {
     );
   }
 
-  // Any authenticated org member can view purchase requests.
+  // Any authenticated org member except vendor can view purchase requests.
   @Get()
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER, Role.TEAM_LEADER)
   findAll(
     @Req() req: AuthenticatedRequest,
     @Query('organizationId') organizationId?: string,
@@ -99,6 +101,7 @@ export class PurchaseRequestController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER, Role.TEAM_LEADER)
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.purchaseRequestService.findOne(id, req.user.organizationId);
   }
