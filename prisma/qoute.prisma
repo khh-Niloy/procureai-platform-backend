@@ -28,8 +28,8 @@ model Quote {
   items           QuoteItem[]
   documents       Document[]
 
-  @@index([vendorId])
   @@index([purchaseRequestId])
+  @@unique([vendorId, purchaseRequestId])
 }
 
 model QuoteItem {

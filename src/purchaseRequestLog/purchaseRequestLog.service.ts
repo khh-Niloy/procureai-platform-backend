@@ -138,23 +138,6 @@ export class PurchaseRequestLogService {
         );
       }
 
-      if (dto.type === 'quote') {
-        const vendors = await transaction.vendor.findMany({
-          where: { organizationId: user.organizationId, isActive: true },
-          select: { id: true },
-        });
-        if (vendors.length) {
-          await transaction.vendorQuoteRequest.createMany({
-            data: vendors.map(({ id: vendorId }) => ({
-              requesterId: user.id,
-              purchaseRequestId: dto.purchaseRequestId,
-              organizationId: user.organizationId,
-              vendorId,
-            })),
-          });
-        }
-      }
-
       const createdLog = await this.create(transaction, {
         organizationId: user.organizationId,
         purchaseRequestId: dto.purchaseRequestId,

@@ -18,5 +18,4 @@ model Vendor {
 
   quotes    Quote[]
   documents Document[]
-  quoteRequests VendorQuoteRequest[]
 }

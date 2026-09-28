@@ -76,6 +76,14 @@ export class PurchaseRequestController {
     );
   }
 
+  @Get(':id/analyses')
+  listAnalyses(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.purchaseRequestService.listAnalyses(
+      id,
+      req.user.organizationId,
+    );
+  }
+
   // Any authenticated org member can view purchase requests.
   @Get()
   findAll(

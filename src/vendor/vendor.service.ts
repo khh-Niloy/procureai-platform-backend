@@ -1,48 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PurchaseRequestStatus } from 'src/generated/prisma/enums';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateVendorDto } from './dto/create-vendor.dto';
-import { UpdateVendorDto } from './dto/update-vendor.dto';
 
 @Injectable()
 export class VendorService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // async createVendor(organizationId: string, userId: string, dto: CreateVendorDto) {
-  //   return this.prisma.vendor.create({
-  //     data: {
-  //       organizationId,
-  //       userId,
-  //       ...dto,
-  //     },
-  //   });
-  // }
-
-  async updateVendor(id: string, organizationId: string, dto: UpdateVendorDto) {
-    const vendor = await this.prisma.vendor.findFirst({
-      where: { id, organizationId },
-    });
-
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
-    }
-
-    return this.prisma.vendor.update({
-      where: { id },
-      data: dto,
-    });
-  }
-
-  async getVendorById(id: string, organizationId: string) {
-    const vendor = await this.prisma.vendor.findFirst({
-      where: { id, organizationId },
-    });
-
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
-    }
-
-    return vendor;
-  }
 
   async getVendorsByOrganization(organizationId: string) {
     return this.prisma.vendor.findMany({
@@ -51,23 +13,46 @@ export class VendorService {
     });
   }
 
-  async getQuoteRequests(organizationId: string, userId: string) {
+  async getRequest(organizationId: string, userId: string) {
     const vendor = await this.prisma.vendor.findFirst({
       where: { organizationId, userId, isActive: true },
       select: { id: true },
     });
+
     if (!vendor) {
       throw new NotFoundException('Active vendor not found');
     }
 
-    return this.prisma.vendorQuoteRequest.findMany({
-      where: { organizationId, vendorId: vendor.id },
+    const purchaseRequests = await this.prisma.purchaseRequest.findMany({
+      where: { organizationId },
       include: {
-        purchaseRequest: {
-          include: { items: true, organization: { select: { id: true, name: true } } },
+        items: true,
+        logs: {
+          orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          select: { purchaseStatus: true },
+        },
+        quotes: {
+          where: { vendorId: vendor.id },
+          select: { id: true },
+          take: 1,
         },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return {
+      data: purchaseRequests
+        .filter(
+          (purchaseRequest) =>
+            purchaseRequest.logs[0]?.purchaseStatus ===
+            PurchaseRequestStatus.QUOTE_COLLECTION,
+        )
+        .map(({ items, logs, quotes, ...purchaseRequest }) => ({
+          ...purchaseRequest,
+          items,
+          isSubmitted: quotes.length > 0,
+        })),
+    };
   }
 }

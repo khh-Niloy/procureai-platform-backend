@@ -66,18 +66,30 @@ export class DocumentService {
       throw new NotFoundException('Vendor not found');
     }
 
-    return this.prisma.document.findMany({
+    const documents = await this.prisma.document.findMany({
       where: {
         organizationId,
         vendorId,
       },
       select: {
+        id: true,
         quoteId: true,
-        organizationId: true,
-        vendorId: true,
         fileName: true,
+        status: true,
+        failureReason: true,
+        storageKey: true,
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      documents.map(async ({ storageKey, ...document }) => ({
+        ...document,
+        url:
+          document.status === DocumentStatus.DONE
+            ? await this.storage.createSignedPreviewUrl(storageKey)
+            : null,
+      })),
+    );
   }
 }

@@ -296,6 +296,30 @@ export class PurchaseRequestService {
     return pr;
   }
 
+  async listAnalyses(id: string, organizationId: string) {
+    const purchaseRequest = await this.prisma.purchaseRequest.findFirst({
+      where: { id, organizationId },
+      select: { id: true, title: true },
+    });
+    if (!purchaseRequest) {
+      throw new NotFoundException('Purchase request not found');
+    }
+
+    const analyses = await this.prisma.quoteAnalysis.findMany({
+      where: { purchaseRequestId: id },
+      include: { createdBy: { select: { id: true, name: true } } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    return {
+      purchaseRequest,
+      data: analyses.map((analysis) => ({
+        ...this.analysisResponse(analysis),
+        createdBy: analysis.createdBy,
+      })),
+    };
+  }
+
   private analysisResponse(
     analysis: {
       id: string;
