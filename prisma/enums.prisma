@@ -10,16 +10,15 @@ enum Role {
 
 enum PurchaseRequestStatus {
   PENDING_MANAGER_APPROVAL
-  INITIAL_APPROVED
+  REQUEST_APPROVED
   QUOTE_COLLECTION
   AI_ANALYSIS_SUCCESS
   AI_ANALYSIS_FAILED
   PENDING_FINANCE_APPROVAL
   PENDING_CFO_APPROVAL
-  APPROVED
   REJECTED
   CFO_APPROVED
-  PURCHASED
+  RECEIVED_BY_VENDOR
 }
 
 enum DocumentType {
@@ -30,18 +29,6 @@ enum DocumentStatus {
   PROCESSING
   DONE
   FAILED
-}
-
-enum ApprovalType {
-  MANAGER
-  FINANCE
-  CFO
-}
-
-enum ApprovalStatus {
-  PENDING
-  APPROVED
-  REJECTED
 }
 
 enum AnalysisStatus {

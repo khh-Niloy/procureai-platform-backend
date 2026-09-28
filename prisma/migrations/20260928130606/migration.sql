@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "purchaseRequestLogs_organizationId_purchaseRequestId_performedA" RENAME TO "purchaseRequestLogs_organizationId_purchaseRequestId_perfor_idx";
