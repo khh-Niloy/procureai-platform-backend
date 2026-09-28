@@ -18,7 +18,6 @@ model PurchaseRequest {
   items     PurchaseRequestItem[]
   quotes    Quote[]
   analyses  QuoteAnalysis[]
-  vendorQuoteRequests VendorQuoteRequest[]
   logs PurchaseRequestLog[]
 
 }

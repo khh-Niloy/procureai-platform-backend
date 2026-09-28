@@ -35,4 +35,18 @@ export class SupabaseStorageService {
 
     return data.signedUrl;
   }
+
+  async createSignedPreviewUrl(storageKey: string, expiresIn = 300) {
+    const { data, error } = await this.client.storage
+      .from(PROCUREMENT_DOCUMENTS_BUCKET)
+      .createSignedUrl(storageKey, expiresIn);
+
+    if (error || !data?.signedUrl) {
+      throw new InternalServerErrorException(
+        `Unable to create document preview URL: ${error?.message ?? 'Unknown error'}`,
+      );
+    }
+
+    return data.signedUrl;
+  }
 }

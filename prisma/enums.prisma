@@ -36,8 +36,3 @@ enum AnalysisStatus {
   SUCCEEDED
   FAILED
 }
-
-enum VendorQuoteRequestStatus {
-  PENDING
-  QOUTE_SUBMITTED
-}

@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { Role } from 'src/generated/prisma/enums';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from 'src/decorators/roles.decorator';
 import { ApproveAndRejectPurchaseRequestLogDto } from './dto/createPurchaseRequestLog.dto';
 import { PurchaseRequestLogService } from './purchaseRequestLog.service';
 
@@ -18,6 +19,7 @@ export class PurchaseRequestLogController {
   ) {}
 
   @Post(':purchaseRequestLogId/approveAndReject')
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER, Role.TEAM_LEADER)
   approveAndReject(
     @Param('purchaseRequestLogId') purchaseRequestLogId: string,
     @Req() req: AuthenticatedRequest,

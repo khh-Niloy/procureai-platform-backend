@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import {
   DocumentStatus,
   DocumentType,
-  VendorQuoteRequestStatus,
+  PurchaseRequestStatus,
 } from 'src/generated/prisma/enums';
 import { Prisma } from 'src/generated/prisma/client';
 import { DocumentService } from 'src/document/document.service';
@@ -41,18 +41,60 @@ export class QuoteService {
       }),
       this.prisma.purchaseRequest.findFirst({
         where: { id: dto.purchaseRequestId, organizationId },
+        include: {
+          logs: {
+            orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
+            take: 1,
+            select: { purchaseStatus: true },
+          },
+        },
       }),
     ]);
 
     if (!vendor) throw new NotFoundException('Active vendor not found');
     if (!purchaseRequest)
       throw new NotFoundException('Purchase request not found');
+    if (
+      purchaseRequest.logs[0]?.purchaseStatus !==
+      PurchaseRequestStatus.QUOTE_COLLECTION
+    ) {
+      throw new ConflictException(
+        'This purchase request is not currently accepting quotes.',
+      );
+    }
     const quoteId = randomUUID();
     const todaysDate = new Date().toISOString().slice(0, 10);
     const fileName = `quotation-${todaysDate}-${quoteId.slice(0, 8)}.pdf`;
     const storageKey = `organizations/${organizationId}/quotes/${quoteId}.pdf`;
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const latestLog = await tx.purchaseRequestLog.findFirst({
+        where: {
+          purchaseRequestId: dto.purchaseRequestId,
+          organizationId,
+        },
+        orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
+        select: { purchaseStatus: true },
+      });
+      if (latestLog?.purchaseStatus !== PurchaseRequestStatus.QUOTE_COLLECTION) {
+        throw new ConflictException(
+          'This purchase request is no longer accepting quotes.',
+        );
+      }
+
+      const existingQuote = await tx.quote.findFirst({
+        where: {
+          vendorId: vendor.id,
+          purchaseRequestId: dto.purchaseRequestId,
+        },
+        select: { id: true },
+      });
+      if (existingQuote) {
+        throw new ConflictException(
+          'You have already submitted a quote for this purchase request.',
+        );
+      }
+
       const quote = await tx.quote.create({
         data: {
           id: quoteId,
@@ -98,17 +140,19 @@ export class QuoteService {
           fileSize: 0,
         },
       });
-      await tx.vendorQuoteRequest.updateMany({
-        where: {
-          purchaseRequestId: dto.purchaseRequestId,
-          organizationId,
-          vendorId: vendor.id,
-        },
-        data: {
-          vendorQuoteRequest: VendorQuoteRequestStatus.QOUTE_SUBMITTED,
-        },
-      });
       return { quote, document };
+    }).catch((error: unknown) => {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'You have already submitted a quote for this purchase request.',
+        );
+      }
+      throw error;
     });
 
     try {
