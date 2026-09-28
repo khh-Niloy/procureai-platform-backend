@@ -1,21 +1,18 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from 'src/generated/prisma/client';
 import {
   AnalysisStatus,
-  ApprovalStatus,
-  ApprovalType,
   PurchaseRequestStatus,
-  Role,
 } from 'src/generated/prisma/enums';
 import { AiAnalysisService } from 'src/ai/ai-analysis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePurchaseRequestDto } from './dto/create-purchase-request.dto';
+import { PurchaseRequestLogService } from 'src/purchaseRequestLog/purchaseRequestLog.service';
 
 type RuleStatus = 'PASS' | 'FAIL' | 'NOT_APPLICABLE' | 'UNKNOWN';
 
@@ -32,41 +29,12 @@ type QuoteHardRuleResult = {
   };
 };
 
-const APPROVAL_TRANSITIONS: Partial<
-  Record<
-    Role,
-    {
-      type: ApprovalType;
-      expectedStatus: PurchaseRequestStatus;
-      approvedStatus: PurchaseRequestStatus;
-      nextType?: ApprovalType;
-    }
-  >
-> = {
-  [Role.MANAGER]: {
-    type: ApprovalType.MANAGER,
-    expectedStatus: PurchaseRequestStatus.PENDING_MANAGER_APPROVAL,
-    approvedStatus: PurchaseRequestStatus.PENDING_FINANCE_APPROVAL,
-    nextType: ApprovalType.FINANCE,
-  },
-  [Role.FINANCE_OFFICER]: {
-    type: ApprovalType.FINANCE,
-    expectedStatus: PurchaseRequestStatus.PENDING_FINANCE_APPROVAL,
-    approvedStatus: PurchaseRequestStatus.PENDING_CFO_APPROVAL,
-    nextType: ApprovalType.CFO,
-  },
-  [Role.CFO]: {
-    type: ApprovalType.CFO,
-    expectedStatus: PurchaseRequestStatus.PENDING_CFO_APPROVAL,
-    approvedStatus: PurchaseRequestStatus.CFO_APPROVED,
-  },
-};
-
 @Injectable()
 export class PurchaseRequestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiAnalysis: AiAnalysisService,
+    private readonly purchaseRequestLogService: PurchaseRequestLogService,
   ) {}
 
   async createRequest(
@@ -75,113 +43,41 @@ export class PurchaseRequestService {
     dto: CreatePurchaseRequestDto,
   ) {
     const { items, requiredBy, budget, ...rest } = dto;
-    return this.prisma.purchaseRequest.create({
-      data: {
-        ...rest,
-        budget: budget || undefined,
-        requiredBy: requiredBy ? new Date(requiredBy) : undefined,
-        organizationId,
-        requesterId,
-        status: PurchaseRequestStatus.PENDING_MANAGER_APPROVAL,
-        items: {
-          create: items.map((item) => ({
-            name: item.name,
-            description: item.description,
-            quantity: item.quantity,
-            specifications: item.specifications ?? undefined,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-  }
-
-  async decideInitialApproval(
-    id: string,
-    organizationId: string,
-    userId: string,
-    status:
-      | typeof PurchaseRequestStatus.INITIAL_APPROVED
-      | typeof PurchaseRequestStatus.REJECTED,
-    comment?: string,
-  ) {
-    const result = await this.prisma.purchaseRequest.updateMany({
-      where: {
-        id,
-        organizationId,
-        status: PurchaseRequestStatus.PENDING_MANAGER_APPROVAL,
-        initialApprovedAt: null,
-      },
-      data: {
-        status,
-        initialApprovedById: userId,
-        initialApprovalComment: comment,
-        initialApprovedAt: new Date(),
-      },
-    });
-    if (result.count !== 1) {
-      throw new ConflictException(
-        'This purchase request is not awaiting its initial manager approval.',
-      );
-    }
-    return this.findOne(id, organizationId);
-  }
-
-  async startQuoteCollection(
-    id: string,
-    organizationId: string,
-    requesterId: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const result = await tx.purchaseRequest.updateMany({
-        where: {
-          id,
+    return this.prisma.$transaction(async (transaction) => {
+      const purchaseRequest = await transaction.purchaseRequest.create({
+        data: {
+          ...rest,
+          currency: 'BDT',
+          budget: budget || undefined,
+          requiredBy: requiredBy ? new Date(requiredBy) : undefined,
           organizationId,
-          status: PurchaseRequestStatus.INITIAL_APPROVED,
+          requesterId,
+          items: {
+            create: items.map((item) => ({
+              name: item.name,
+              description: item.description,
+              quantity: item.quantity,
+              specifications: item.specifications ?? undefined,
+            })),
+          },
         },
-        data: { status: PurchaseRequestStatus.QUOTE_COLLECTION },
-      });
-      if (result.count !== 1) {
-        throw new ConflictException(
-          'Only initially approved purchase requests can enter quote collection.',
-        );
-      }
-
-      const vendors = await tx.vendor.findMany({
-        where: { organizationId, isActive: true },
-        select: { id: true },
-      });
-      if (vendors.length) {
-        await tx.vendorQuoteRequest.createMany({
-          data: vendors.map(({ id: vendorId }) => ({
-            requesterId,
-            purchaseRequestId: id,
-            organizationId,
-            vendorId,
-          })),
-        });
-      }
-
-      return tx.purchaseRequest.findFirstOrThrow({
-        where: { id, organizationId },
         include: { items: true },
       });
+
+      await this.purchaseRequestLogService.create(transaction, {
+        organizationId,
+        purchaseRequestId: purchaseRequest.id,
+        purchaseStatus: 'PENDING_MANAGER_APPROVAL',
+        performedBy: requesterId,
+      });
+
+      return purchaseRequest;
     });
   }
 
   async findByStatus(organizationId: string, status: PurchaseRequestStatus) {
-    return this.prisma.purchaseRequest.findMany({
-      where: { organizationId, status },
-      include: {
-        items: true,
-        requester: { select: { id: true, name: true, email: true } },
-        analyses: {
-          include: { approvals: { orderBy: { createdAt: 'asc' } } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const response = await this.findAll(organizationId);
+    return response.data.filter((request) => request.status === status);
   }
 
   async analyzeQuotes(
@@ -201,10 +97,11 @@ export class PurchaseRequestService {
     if (!purchaseRequest) {
       throw new NotFoundException('Purchase request not found');
     }
-    if (
-      purchaseRequest.status !== PurchaseRequestStatus.INITIAL_APPROVED &&
-      purchaseRequest.status !== PurchaseRequestStatus.AI_ANALYSIS_FAILED
-    ) {
+    const currentLog = await this.prisma.purchaseRequestLog.findFirst({
+      where: { organizationId, purchaseRequestId: id },
+      orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
+    });
+    if (currentLog?.purchaseStatus !== PurchaseRequestStatus.QUOTE_COLLECTION) {
       throw new ConflictException(
         'Quotes can only be analyzed while the purchase request is in quote collection.',
       );
@@ -280,14 +177,14 @@ export class PurchaseRequestService {
       const generated = await this.aiAnalysis.analyze(input, quoteIds);
       const saved = await this.prisma.$transaction(
         async (tx) => {
-          const current = await tx.purchaseRequest.findFirst({
-            where: { id, organizationId },
-            select: { status: true },
+          const latestLog = await tx.purchaseRequestLog.findFirst({
+            where: { purchaseRequestId: id, organizationId },
+            orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
           });
           if (
-            !current ||
-            (current.status !== PurchaseRequestStatus.INITIAL_APPROVED &&
-              current.status !== PurchaseRequestStatus.AI_ANALYSIS_FAILED)
+            !latestLog ||
+            latestLog.id !== currentLog.id ||
+            latestLog.purchaseStatus !== PurchaseRequestStatus.QUOTE_COLLECTION
           ) {
             throw new ConflictException(
               'The purchase request status changed while analysis was running.',
@@ -303,23 +200,25 @@ export class PurchaseRequestService {
               completedAt: new Date(),
             },
           });
-          await tx.purchaseRequest.update({
-            where: { id },
-            data: { status: PurchaseRequestStatus.PENDING_MANAGER_APPROVAL },
+          const analysisLog = await this.purchaseRequestLogService.create(tx, {
+            organizationId,
+            purchaseRequestId: id,
+            purchaseStatus: PurchaseRequestStatus.AI_ANALYSIS_SUCCESS,
+            performedBy: userId,
           });
-          await tx.approval.create({
-            data: {
-              purchaseRequestId: id,
-              analysisId: analysis.id,
-              type: ApprovalType.MANAGER,
-            },
+          await this.purchaseRequestLogService.create(tx, {
+            organizationId,
+            purchaseRequestId: id,
+            purchaseStatus: PurchaseRequestStatus.PENDING_FINANCE_APPROVAL,
+            performedBy: userId,
+            performedAt: new Date(analysisLog.performedAt.getTime() + 1),
           });
           return completed;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
       return {
-        purchaseRequestStatus: PurchaseRequestStatus.PENDING_MANAGER_APPROVAL,
+        purchaseRequestStatus: PurchaseRequestStatus.PENDING_FINANCE_APPROVAL,
         analysis: this.analysisResponse(saved, hardRuleResults),
       };
     } catch (error) {
@@ -333,154 +232,56 @@ export class PurchaseRequestService {
           },
         })
         .catch(() => undefined);
-      await this.prisma.purchaseRequest
-        .updateMany({
-          where: {
-            id,
+      await this.prisma.$transaction(async (tx) => {
+        const currentLog = await tx.purchaseRequestLog.findFirst({
+          where: { purchaseRequestId: id, organizationId },
+          orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
+        });
+        if (currentLog?.purchaseStatus === PurchaseRequestStatus.QUOTE_COLLECTION) {
+          await this.purchaseRequestLogService.create(tx, {
             organizationId,
-            status: {
-              in: [
-                PurchaseRequestStatus.INITIAL_APPROVED,
-                PurchaseRequestStatus.AI_ANALYSIS_FAILED,
-              ],
-            },
-          },
-          data: { status: PurchaseRequestStatus.AI_ANALYSIS_FAILED },
-        })
-        .catch(() => undefined);
+            purchaseRequestId: id,
+            purchaseStatus: PurchaseRequestStatus.AI_ANALYSIS_FAILED,
+            performedBy: userId,
+            note: this.failureReason(error),
+          });
+        }
+      }).catch(() => undefined);
       throw error;
     }
   }
 
-  // async listAnalyses(id: string, organizationId: string) {
-  //   const purchaseRequest = await this.prisma.purchaseRequest.findFirst({
-  //     where: { id, organizationId },
-  //     select: { id: true },
-  //   });
-  //   if (!purchaseRequest) {
-  //     throw new NotFoundException('Purchase request not found');
-  //   }
-
-  //   const analyses = await this.prisma.quoteAnalysis.findMany({
-  //     where: { purchaseRequestId: id },
-  //     include: { approvals: { orderBy: { createdAt: 'asc' } } },
-  //     orderBy: { createdAt: 'desc' },
-  //   });
-  //   return analyses.map((analysis) => this.analysisResponse(analysis));
-  // }
-
-  async decideApproval(
-    id: string,
-    analysisId: string,
-    organizationId: string,
-    userId: string,
-    role: Role,
-    status: ApprovalStatus,
-    comment?: string,
-  ) {
-    if (status === ApprovalStatus.PENDING) {
-      throw new BadRequestException(
-        'An approval decision must be APPROVED or REJECTED.',
-      );
-    }
-    const transition = APPROVAL_TRANSITIONS[role];
-    if (!transition) {
-      throw new ForbiddenException(
-        'Your role cannot approve this purchase request.',
-      );
-    }
-
-    return this.prisma.$transaction(
-      async (tx) => {
-        const request = await tx.purchaseRequest.findFirst({
-          where: { id, organizationId },
-          select: { status: true },
-        });
-        if (!request) throw new NotFoundException('Purchase request not found');
-        if (request.status !== transition.expectedStatus) {
-          throw new ConflictException(
-            'This purchase request is not awaiting your approval.',
-          );
-        }
-
-        const analysis = await tx.quoteAnalysis.findFirst({
-          where: {
-            id: analysisId,
-            purchaseRequestId: id,
-            status: AnalysisStatus.SUCCEEDED,
-          },
-          select: { id: true },
-        });
-        if (!analysis)
-          throw new NotFoundException('Completed analysis not found');
-
-        const updated = await tx.approval.updateMany({
-          where: {
-            purchaseRequestId: id,
-            analysisId,
-            type: transition.type,
-            status: ApprovalStatus.PENDING,
-          },
-          data: { status, approverId: userId, comment, decidedAt: new Date() },
-        });
-        if (updated.count !== 1) {
-          throw new ConflictException(
-            'This approval has already been decided.',
-          );
-        }
-
-        const nextStatus =
-          status === ApprovalStatus.APPROVED
-            ? transition.approvedStatus
-            : PurchaseRequestStatus.REJECTED;
-        await tx.purchaseRequest.update({
-          where: { id },
-          data: { status: nextStatus },
-        });
-        if (status === ApprovalStatus.APPROVED && transition.nextType) {
-          await tx.approval.create({
-            data: {
-              purchaseRequestId: id,
-              analysisId,
-              type: transition.nextType,
-            },
-          });
-        }
-        return {
-          purchaseRequestStatus: nextStatus,
-          analysis: await this.getAnalysisInTransaction(tx, analysisId),
-        };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
-  }
-
-  async markPurchased(id: string, organizationId: string) {
-    const result = await this.prisma.purchaseRequest.updateMany({
-      where: { id, organizationId, status: PurchaseRequestStatus.CFO_APPROVED },
-      data: { status: PurchaseRequestStatus.PURCHASED },
-    });
-    if (result.count !== 1) {
-      throw new ConflictException(
-        'Only CFO-approved purchase requests can be marked purchased.',
-      );
-    }
-    return this.findOne(id, organizationId);
-  }
-
   async findAll(organizationId: string) {
-    return this.prisma.purchaseRequest.findMany({
+    const requests = await this.prisma.purchaseRequest.findMany({
       where: { organizationId },
       include: {
         items: true,
         requester: { select: { id: true, name: true, email: true } },
-        analyses: {
-          include: { approvals: { orderBy: { createdAt: 'asc' } } },
-          orderBy: { createdAt: 'desc' },
+        logs: {
+          orderBy: { performedAt: 'asc' },
+          include: { performer: { select: { name: true, role: true } } },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
+    return {
+      data: requests.map(({ items, logs, budget, ...request }) => ({
+        ...request,
+        status: logs[logs.length - 1]?.purchaseStatus ?? null,
+        quantity: items.reduce((total, item) => total + item.quantity, 0),
+        budget: budget === null ? null : Number(budget),
+        items,
+        logs: logs.map((log) => ({
+          id: log.id,
+          status: log.purchaseStatus,
+          performedBy: log.performedBy,
+          performedByName: log.performer.name,
+          performedByRole: log.performer.role,
+          createdAt: log.performedAt,
+          note: log.note,
+        })),
+      })),
+    };
   }
 
   async findOne(id: string, organizationId: string) {
@@ -495,18 +296,6 @@ export class PurchaseRequestService {
     return pr;
   }
 
-  private async getAnalysisInTransaction(
-    tx: Prisma.TransactionClient,
-    analysisId: string,
-  ) {
-    const analysis = await tx.quoteAnalysis.findUnique({
-      where: { id: analysisId },
-      include: { approvals: { orderBy: { createdAt: 'asc' } } },
-    });
-    if (!analysis) throw new NotFoundException('Analysis not found');
-    return this.analysisResponse(analysis);
-  }
-
   private analysisResponse(
     analysis: {
       id: string;
@@ -518,7 +307,6 @@ export class PurchaseRequestService {
       failureReason?: string | null;
       completedAt: Date | null;
       createdAt?: Date;
-      approvals?: unknown;
     },
     hardRuleResults?: QuoteHardRuleResult[],
   ) {
@@ -529,7 +317,6 @@ export class PurchaseRequestService {
       recommendation: analysis.result,
       hardRuleResults: hardRuleResults ?? analysis.hardRuleResults,
       recommendedQuoteId: analysis.recommendedQuoteId,
-      approvals: analysis.approvals ?? [],
       failureReason: analysis.failureReason ?? null,
       completedAt: analysis.completedAt,
       createdAt: analysis.createdAt,

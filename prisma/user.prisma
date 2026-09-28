@@ -14,7 +14,6 @@ model User {
   vendor              Vendor?
   purchaseRequests    PurchaseRequest[] @relation("Requester")
   createdAnalyses     QuoteAnalysis[]   @relation("QuoteAnalysisCreator")
-  approvals           Approval[]        @relation("ApprovalApprover")
-  initialRequestApprovals PurchaseRequest[] @relation("InitialRequestApprover")
   vendorQuoteRequests VendorQuoteRequest[] @relation("Requester")
+  purchaseRequestLogs PurchaseRequestLog[]
 }

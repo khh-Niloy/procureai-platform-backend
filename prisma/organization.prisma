@@ -10,4 +10,5 @@ model Organization {
   invitations      OrganizationInvitation[]
   purchaseRequests PurchaseRequest[]
   vendorQuoteRequests VendorQuoteRequest[]
+  purchaseRequestLogs PurchaseRequestLog[]
 }

@@ -44,7 +44,7 @@ export class CreatePurchaseRequestDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['USD', 'EUR', 'GBP', 'BDT'])
+  @IsIn(['BDT'])
   currency?: string;
 
   @IsDateString()

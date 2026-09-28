@@ -6,29 +6,38 @@ model PurchaseRequest {
   title       String
   description String
   budget      Decimal?
-  currency    String    @default("USD")
+  currency    String    @default("BDT")
   requiredBy  DateTime?
-
-  status PurchaseRequestStatus @default(PENDING_MANAGER_APPROVAL)
-
-  initialApprovedById String?
-  initialApprovalComment String?
-  initialApprovedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id])
   requester    User         @relation("Requester", fields: [requesterId], references: [id])
-  initialApprovedBy User?   @relation("InitialRequestApprover", fields: [initialApprovedById], references: [id], onDelete: SetNull)
 
   items     PurchaseRequestItem[]
   quotes    Quote[]
   analyses  QuoteAnalysis[]
-  approvals Approval[]
   vendorQuoteRequests VendorQuoteRequest[]
+  logs PurchaseRequestLog[]
 
-  @@index([initialApprovedById])
+}
+
+model PurchaseRequestLog {
+  id                String                  @id @default(uuid())
+  organizationId    String
+  purchaseRequestId String
+  purchaseStatus    PurchaseRequestStatus
+  performedBy       String
+  performedAt       DateTime                @default(now())
+  note              String?
+
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  performer       User            @relation(fields: [performedBy], references: [id])
+
+  @@index([organizationId, purchaseRequestId, performedAt])
+  @@map("purchaseRequestLogs")
 }
 
 model PurchaseRequestItem {
