@@ -35,7 +35,14 @@ export class OrganizationController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER, Role.TEAM_LEADER)
+  @Roles(
+    Role.ADMIN,
+    Role.PROCUREMENT_OFFICER,
+    Role.TEAM_LEADER,
+    Role.CFO,
+    Role.FINANCE_OFFICER,
+    Role.MANAGER,
+  )
   @Get('users')
   getOrganizationUsers(@Req() req: any) {
     return this.organizationService.getOrganizationUsers(
